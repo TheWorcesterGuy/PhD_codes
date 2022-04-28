@@ -133,14 +133,16 @@ dmypy.json
 *.txt
 
 #images - tables
-images/
-Sonora_Bobvat_Tables/
+exo_evol/images/
+Sonora_Bobcat_Tables/
 temp/
 tmp/
 
 #exoris - exorem
 exorem/
 exoris/
+VMR_spectra/
+profiles/
 
 #slurm related
 *.out
