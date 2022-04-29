@@ -143,6 +143,7 @@ exorem/
 exoris/
 VMR_spectra/
 profiles/
+running_exoris/
 
 #slurm related
 *.out
