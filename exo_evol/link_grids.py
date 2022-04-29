@@ -18,7 +18,7 @@ def main() :
     merged_grids = interpolation_exoris_at_exorem(exoris,exorem,parameters)
     merged_grids['error'] = (merged_grids['y']-merged_grids['y_exorem']).abs()
     merged_grids = merged_grids.sort_values(by=['error'])
-    final = merged_grids[(merged_grids['y']-merged_grids['y_exorem']).abs()<0.1]
+    final = merged_grids[(merged_grids['y']-merged_grids['y_exorem']).abs()<0.2]
     final = final.drop_duplicates(['g'], keep='first')
     plotting(final)
     
@@ -32,7 +32,7 @@ def initial_grid_reduction(parameters,exoris,exorem):
     M_E = 5.97 * 1e24
     
     #Exoris on Core fraction
-    exoris['core_earths'] = (exoris['core']*exoris['M']*1e-3/M_E).round(0)
+    exoris['core_earths'] = (exoris['core']*exoris['M']/M_E).round(0)
     exoris = exoris[exoris['core_type']=='mass']
     exoris = exoris[exoris['core_earths'] == exoris.iloc[(exoris['core_earths']-parameters['core'].iloc[0]).abs().argsort()[:1]]['core_earths'].iloc[0]]
     #Exoris on rock fraction
@@ -83,9 +83,9 @@ def interpolation_exoris_at_M(exoris,parameters):
         exoris_ = exoris[exoris['T']==T]
         if (M_p > exoris_['M'].min()) & (M_p < exoris_['M'].max()) :
             exoris_new['T_1000'] = [interp1d(exoris_['M'],exoris_['T_1000'])(M_p)]
-            exoris_new['y'] = [interp1d(exoris_['M'],exoris_['y'])(M_p)]
-            exoris_new['g'] = [interp1d(exoris_['M'],exoris_['g'])(M_p)]
-            exoris_new['S'] = [interp1d(exoris_['M'],exoris_['S'])(M_p)]
+            exoris_new['y'] = [interp1d(exoris_['M'],exoris_['y'],kind='nearest')(M_p)]
+            exoris_new['g'] = [interp1d(exoris_['M'],exoris_['g'],kind='nearest')(M_p)]
+            exoris_new['S'] = [interp1d(exoris_['M'],exoris_['S'],kind='nearest')(M_p)]
             frames.append(exoris_new)
         
     exoris = pd.concat(frames,ignore_index=True)
@@ -126,6 +126,7 @@ def extract_T_at_P_exorem(df):
     return df
 
 def formating(exoris,exorem):
+    G_u = 6.674*1e-11
     try :
         exorem = exorem.drop(['uncertainty'], axis=1)
     except :
@@ -133,6 +134,12 @@ def formating(exoris,exorem):
     exoris = exoris.rename(columns={"gamma": "y"})
     exorem = extract_T_at_P_exorem(exorem)
     exoris = extract_T_at_P_exoris(exoris)
+
+    exoris['M'] = exoris['M']*1e-3
+    exoris['Req'] = exoris['Req']*1e3
+
+    if 'g' not in exoris.columns :
+        exoris['g'] = G_u*exoris['M']/exoris['Req']**2
     
     return exoris, exorem
 
