@@ -25,7 +25,7 @@ from datetime import datetime, timedelta
 
 
 def main() :
-    file_prefix = 'EM_degen2'
+    file_prefix = 'Large_mass_range_low_high_T'
 
     M_E = 5.97 * 1e24
     idx = int(eval(sys.argv[-1]))
@@ -40,13 +40,13 @@ def main() :
     time.sleep(1)
 
     file_prefix = [file_prefix]
-    M = np.logspace(26.9,29,24)
+    M = np.logspace(26,28.7,24)
     M = [M[idx]]
-    T = np.round(np.linspace(1000,3000, num=1),2)
-    core = np.logspace(-2.8,0,10)
+    T = np.round(np.linspace(100,5000, num=20),2)
+    core = [10,20]
     rock = [0.01]
-    yhe = np.logspace(-3,0,10)
-    core_type = ['frac'] #Options frac/mass ; mass in earths
+    yhe = [0.001,0.24]
+    core_type = ['mass'] #Options frac/mass ; mass in earths
     parameters = list(product(M, T, core, rock, yhe, core_type, file_prefix))
 
     start = 0
