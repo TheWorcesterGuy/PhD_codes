@@ -18,71 +18,39 @@ import time
 from scipy.interpolate import interp1d
 from joblib import Parallel, delayed
 import re
+import sys
 
 
 def main():
-    clean  = False
-    if clean :
-        files = glob.glob('./exorem/inputs/atmospheres/temperature_profiles/temperature_profile_*.dat')
-        files = [x for x in files if 'ref' not in x]
-        for file in files:
-            os.remove(file)
-            
-        files = glob.glob('./output_exorem/*')
-        for file in files:
-            os.remove(file)
-            
-        files = glob.glob('./exorem/inputs/input-*.nml')
-        for file in files:
-            os.remove(file)
-            
-        #files =glob.glob('./exorem_T_p/*.dat')
-        #for file in files:
-            #os.remove(file)
-
-        files =glob.glob('./VMR_spectra/*.dat')
-        for file in files:
-            os.remove(file)
-
-        files = glob.glob('./exorem/outputs/exorem/*.dat')
-        for file in files:
-            os.remove(file)
-
-        files = glob.glob('./slurm-212*')
-        for file in files:
-            os.remove(file)
-
-        files = glob.glob('exoris_*')
-        files = [f for f in files if os.path.isdir(f)]
-        files = [f for f in files if f!='exoris_H_He']
-        for file in files:
-            os.system('rm -r '+file)
-
-    #g = np.linspace(2,70,69)
-    g = np.linspace(2.4,70.1,100)
+    idx = int(eval(sys.argv[-1]))
+    file_prefix = 'Large_sweep'
+    g = np.linspace(2,150,149)
     g = np.round(g,3)
-    Parallel(n_jobs=24, prefer="processes")(delayed(launcher)(g_) for\
-                           (g_) in g)
+    launcher(g[idx])
 
-def launcher(g) :
+def launcher(g,file_prefix) :
     os.system('cp -r exorem exorem_'+str(g))
 
     g = [np.round(g,2)]
-    T_int = np.round(np.linspace(50, 2000, num = 60), 2)
-    T_irr = np.round(np.linspace(0, 2000, num = 60), 2)
+    T_int = np.round(np.linspace(0, 2000, num = 201), 2)
+    T_irr = np.round(np.linspace(0, 2000, num = 201), 2)
     M = [1]
     He = [1]
+    file_prefix = [file_prefix]
 
-    parameters = list(product(M, He, g, T_int, T_irr))
-    for ii in range(0, len(parameters)) :
+    parameters = list(product(M, He, g, T_int, T_irr, file_prefix))
+    start = 0
+    for ii in range(start, len(parameters)) :
         parameters[ii] = parameters[ii] + (ii, )
     
-    for M, He, g, T_int, T_irr, idx in parameters :
-        exorem(M, He, g, T_int, T_irr, idx)
+    df = pd.DataFrame()
+    for (var) in parameters:
+        df = exorem(var,df)
 
     os.system('rm -r exorem_'+str(g))
 
-def exorem(M, He, g, T_int, T_irr, idx) :
+def exorem(var, df) :
+    M, He, g, T_int, T_irr, idx = var
     max_index = 0
     status = False
     print('In computation\n')
@@ -181,7 +149,7 @@ def exorem(M, He, g, T_int, T_irr, idx) :
             input_file['light_source_parameters']['light_source_radius'] = 774263682.6811
             input_file['light_source_parameters']['light_source_range'] = 77426368268112.78
             input_file['light_source_parameters']['light_source_effective_temperature'] = 3555.5556
-            input_file['light_source_parameters']['light_source_irradiation'] = sigma*T_irr
+            input_file['light_source_parameters']['light_source_irradiation'] = sigma*T_irr**4
 
         input_file['light_source_parameters']['light_source_spectrum_file'] = 'spectrum_BTSettl_3500K_logg5_met0.dat'
         input_file['light_source_parameters']['incidence_angle'] = 0.0
@@ -300,8 +268,8 @@ def exorem(M, He, g, T_int, T_irr, idx) :
             exo = 1
             uncertainty = 100*max((data_dict['temperature_uncertainty'] + data_dict['temperature_uncertainty_b'])/data_dict['temperature'])
 
-            df = pd.DataFrame({'g' : [g], 'T_int' : [T_int], 'T_irr' : [T_irr], 'atm_M': [M], 'He' : [He], 'T_rem' : [np.round(T_rem, 2)], 'T_eff' : [T_eff(spectra)] ,'T_p' : [temperature], 'P_p': [pressure], 'uncertainty' : uncertainty})
-
+            df_new = pd.DataFrame({'g' : [g], 'T_int' : [T_int], 'T_irr' : [T_irr], 'atm_M': [M], 'He' : [He], 'T_rem' : [np.round(T_rem, 2)], 'T_eff' : [T_eff(spectra)] ,'T_p' : [temperature], 'P_p': [pressure], 'uncertainty' : uncertainty})
+            df = df.append(df_new, ignore_index='True')
             df.to_csv('./output_exorem/'+str(g)+'_'+str(T_int)+'_'+str(idx)+'.csv', index = False)
 
             print (df)

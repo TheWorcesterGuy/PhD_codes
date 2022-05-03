@@ -10,6 +10,6 @@
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=24
 
-python3 -u /travail/cwilkinson/Travail/exo_evol/exo_evol.py > output.txt
+python3 -u /travail/cwilkinson/Travail/exo_evol/link_grids.py > output.txt
 
 exit 0
