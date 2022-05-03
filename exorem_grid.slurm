@@ -11,6 +11,13 @@
 
 RUNDIR=/travail/cwilkinson/Travail.${SLURM_JOB_ID}
 
-python3 /travail/cwilkinson/Travail/grille_exorem_interpolation_general.py
+for (( c=1; c<=100; c++ ))
+do  
+  if [ $(jobs -r | wc -l) -ge 24 ]; then
+    wait
+  fi
+    srun -u --exclusive --ntasks 1 python3 /travail/cwilkinson/Travail/grille_exorem.py $c > ./temp/output_exorem_d_$c.txt &
+done
+wait
 
 exit 0
