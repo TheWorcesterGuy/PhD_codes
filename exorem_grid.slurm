@@ -11,12 +11,19 @@
 
 RUNDIR=/travail/cwilkinson/Travail.${SLURM_JOB_ID}
 
-for (( c=1; c<=100; c++ ))
+CPU_counter=0
+for (( c=0; c<=100; c++ ))
 do  
-  if [ $(jobs -r | wc -l) -ge 24 ]; then
-    wait
-  fi
+    echo $CPU_counter
     srun -u --exclusive --ntasks 1 python3 /travail/cwilkinson/Travail/grille_exorem.py $c > ./temp/output_exorem_d_$c.txt &
+    let "CPU_counter+=1" 
+    
+    if [[ "$CPU_counter" -eq 24 ]]; then
+        echo Waiting for processes
+        CPU_counter=0
+        wait
+    fi
+
 done
 wait
 

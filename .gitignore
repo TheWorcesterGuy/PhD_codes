@@ -144,6 +144,9 @@ exoris/
 VMR_spectra/
 profiles/
 running_exoris/
+running_exorem/
+output_exorem/
+exoris_output/
 
 #slurm related
 *.out
