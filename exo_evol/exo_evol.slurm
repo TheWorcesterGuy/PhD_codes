@@ -1,6 +1,6 @@
 #!/bin/sh
 #SBATCH --job-name=exo_evol
-#SBATCH --time=0-12:00:00  
+#SBATCH --time=0-2:00:00  
 #SBATCH --mail-user=christian.wilkinson@obspm.fr --mail-type=ALL
 #SBATCH --clusters=astro_thin
 #SBATCH --partition=def

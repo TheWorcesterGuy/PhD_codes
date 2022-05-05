@@ -15,7 +15,7 @@ CPU_counter=0
 for (( c=0; c<=100; c++ ))
 do  
     echo $CPU_counter
-    srun -u --exclusive --ntasks 1 python3 /travail/cwilkinson/Travail/grille_exorem.py $c > ./temp/output_exorem_d_$c.txt &
+    srun -u --exclusive --ntasks 1 python3 /travail/cwilkinson/Travail/grille_exorem.py $c > ./temp/output_exorem_large_shifted_$c.txt &
     let "CPU_counter+=1" 
     
     if [[ "$CPU_counter" -eq 24 ]]; then
