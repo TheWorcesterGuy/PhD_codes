@@ -23,17 +23,17 @@ import sys
 
 def main():
     idx = int(eval(sys.argv[-1]))
-    file_prefix = 'Large_sweep'
-    g = np.linspace(2,150,149)
+    file_prefix = 'Large_shifted_sweep'
+    g = np.arange(26.25,200,1)
     g = np.round(g,3)
     launcher(g[idx],file_prefix)
 
 def launcher(g,file_prefix) :
-    os.system('cp -r exorem ./running_exorem/exorem_'+str(g))
+    os.system('cp -r exorem ./running_exorem/exorem_'+file_prefix+'_'+str(g))
 
     g = [np.round(g,2)]
-    T_int = np.arange(50,2010,10)
-    T_irr = np.arange(0,2010,10)
+    T_int = np.arange(25,3025,50)
+    T_irr = np.arange(50,3050,50)-3
     M = [1]
     file_prefix = [file_prefix]
 
@@ -43,13 +43,13 @@ def launcher(g,file_prefix) :
     for (var) in parameters:
         df = exorem(var,df)
 
-    os.system('rm -r ./running_exorem/exorem_'+str(g))
+    os.system('rm -r ./running_exorem/exorem_'+file_prefix+'_'+str(g))
 
 def exorem(var, df) :
-    M, g, T_int, T_irr, prefix = var
+    M, g, T_int, T_irr, file_prefix = var
     print()
     print('M, g, T_int, T_irr, prefix')
-    print(M, g, T_int, T_irr, prefix)
+    print(M, g, T_int, T_irr, file_prefix)
     max_index = 0
     status = False
     print('In computation\n')
@@ -57,7 +57,7 @@ def exorem(var, df) :
     T_irr = np.round(T_irr, 2)
     g = np.round(g, 2)
     P = 1e8
-    T_th = make_profile(T_int, g , P, prefix)
+    T_th = make_profile(T_int, g , P, file_prefix)
 
     weight_apriori = 0.1
     retrieval_flux_error = 1e-4
@@ -86,16 +86,16 @@ def exorem(var, df) :
         print('Looking for following temperature profile :')
         print('./profiles/temperature_profile_'+str(g)+'_'+str(closest_T_int)+'_'+str(closest_T_irr)+'.dat')
         profile = glob.glob('./profiles/temperature_profile_'+str(closest_g)+'_'+str(closest_T_int)+'_'+str(closest_T_irr)+'.dat')[0]
-        os.system('cp ' + profile + ' ./running_exorem/exorem_'+str(g)+'/inputs/atmospheres/temperature_profiles')
+        os.system('cp ' + profile + ' ./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/atmospheres/temperature_profiles')
         profile = profile.split('/')[-1]
         print('\n\nUsing profile - T_int: {}K - T_irr: {}K\n\n'.format(closest_T_int,closest_T_irr))
     else :
         print('\n\nUsing theoretical profile\n\n')
-        profile = 'temperature_profile_example-'+prefix+'_'+str(g)+'.dat'
+        profile = 'temperature_profile_example-'+file_prefix+'_'+str(g)+'.dat'
 
     fail = 0
     while status == False :      
-        input_file = f90nml.read('./running_exorem/exorem_'+str(g)+'/inputs/example.nml')
+        input_file = f90nml.read('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/example.nml')
         earth_mass = 5.97*1e24
         earth_radius = 6371*1e3 
         sigma = 5.67*1e-8
@@ -135,14 +135,14 @@ def exorem(var, df) :
         
         input_file['atmosphere_parameters']['metallicity'] = M
 
-        input_file['paths']['path_data'] = './running_exorem/exorem_'+str(g)+'/data/'
-        input_file['paths']['path_cia'] = './running_exorem/exorem_'+str(g)+'/data/cia/'
-        input_file['paths']['path_clouds'] = './running_exorem/exorem_'+str(g)+'/data/cloud_optical_constants/'
-        input_file['paths']['path_k_coefficients'] = './running_exorem/exorem_'+str(g)+'/data/k_coefficients_tables/R50/'
-        input_file['paths']['path_temperature_profile'] = './running_exorem/exorem_'+str(g)+'/inputs/atmospheres/temperature_profiles/'
-        input_file['paths']['path_thermochemical_tables'] = './running_exorem/exorem_'+str(g)+'/data/thermochemical_tables/'
-        input_file['paths']['path_light_source_spectra'] = './running_exorem/exorem_'+str(g)+'/data/stellar_spectra/'
-        input_file['paths']['path_outputs'] = './running_exorem/exorem_'+str(g)+'/outputs/exorem/'
+        input_file['paths']['path_data'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/'
+        input_file['paths']['path_cia'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/cia/'
+        input_file['paths']['path_clouds'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/cloud_optical_constants/'
+        input_file['paths']['path_k_coefficients'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/k_coefficients_tables/R50/'
+        input_file['paths']['path_temperature_profile'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/atmospheres/temperature_profiles/'
+        input_file['paths']['path_thermochemical_tables'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/thermochemical_tables/'
+        input_file['paths']['path_light_source_spectra'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/data/stellar_spectra/'
+        input_file['paths']['path_outputs'] = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/outputs/exorem/'
         
         if T_irr == 0 :
             input_file['light_source_parameters']['add_light_source'] = False
@@ -164,23 +164,23 @@ def exorem(var, df) :
 
         input_file['atmosphere_parameters']['pressure_max'] = 2000*1e5
         
-        if len(glob.glob('./running_exorem/exorem_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')) : 
-            os.remove('./running_exorem/exorem_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
+        if len(glob.glob('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')) : 
+            os.remove('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
                 
-        input_file.write('./running_exorem/exorem_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
+        input_file.write('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
 
-        os.system('./running_exorem/exorem_'+str(g)+'/bin/exorem.exe ./running_exorem/exorem_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
-        os.remove('./running_exorem/exorem_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
+        os.system('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/bin/exorem.exe ./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
+        os.remove('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/input-'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.nml')
         
         storage_files = '/travail/cwilkinson/Travail/VMR_spectra'
-        spectra_files = glob.glob('./running_exorem/exorem_'+str(g)+'/outputs/exorem/*'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.dat')
+        spectra_files = glob.glob('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/outputs/exorem/*'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.dat')
         spectra_files = [x for x in spectra_files if 'temperature' not in x]
 
         for file in spectra_files :
             os.system('cp {} {}'.format(file,storage_files))
             os.remove(file)
 
-        temperature_profile = glob.glob('./running_exorem/exorem_'+str(g)+'/outputs/exorem/temperature_profile_'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.dat')
+        temperature_profile = glob.glob('./running_exorem/exorem_'+file_prefix+'_'+str(g)+'/outputs/exorem/temperature_profile_'+str(g)+'_'+str(T_int)+'_'+str(T_irr)+'.dat')
         fail += 1
 
         if (len(temperature_profile) == 0) or (len(spectra_files) == 0): 
@@ -280,7 +280,7 @@ def exorem(var, df) :
 
             df_new = pd.DataFrame({'g' : [g], 'T_int' : [T_int], 'T_irr' : [T_irr], 'atm_M': [M], 'T_rem' : [np.round(T_rem, 2)], 'T_eff' : [T_eff(spectra)] ,'T_p' : [temperature], 'P_p': [pressure], 'uncertainty' : uncertainty})
             df = df.append(df_new, ignore_index='True')
-            df.to_csv('./output_exorem/'+prefix+'_'+str(g)+'.csv', index = False)
+            df.to_csv('./output_exorem/'+file_prefix+'_'+str(g)+'.csv', index = False)
 
             print (df)
 
@@ -291,7 +291,10 @@ def exorem(var, df) :
 def T_eff(file) :
     sigma = 5.67*1e-8
     data = load_dat(file)
-    return ((np.mean(np.diff(data['wavenumber']))*np.sum(data['spectral_flux']))/sigma)**(1/4)
+    del data['units']
+    data = pd.DataFrame(data)
+    data = data[data['spectral_flux']>0]
+    return (((data['wavenumber'].diff()*data['spectral_flux']).sum(skipna=True))/sigma)**(1/4)
     
 def load_dat(file, **kwargs):
     """
@@ -317,7 +320,7 @@ def load_dat(file, **kwargs):
 
     return data_dict
 
-def make_profile(T_int, g, P_th, prefix):
+def make_profile(T_int, g, P_th, file_prefix):
 
     T_int = np.round(T_int, 1)
     P_th = np.round(P_th, 1)
@@ -334,7 +337,7 @@ def make_profile(T_int, g, P_th, prefix):
             
     data[:, 1] = T
     g = g[0]
-    file = './running_exorem/exorem_'+str(g)+'/inputs/atmospheres/temperature_profiles/temperature_profile_example-'+prefix+'_'+str(g)+'.dat'
+    file = './running_exorem/exorem_'+file_prefix+'_'+str(g)+'/inputs/atmospheres/temperature_profiles/temperature_profile_example-'+file_prefix+'_'+str(g)+'.dat'
     save_profile(file, data)
     
     # plt.plot(data[:, 1], data[:, 0]*1e-5)
