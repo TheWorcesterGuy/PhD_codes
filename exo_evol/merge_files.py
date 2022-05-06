@@ -11,6 +11,7 @@ import numpy as np
 import glob
 import csv
 import os
+from scipy.interpolate import interp1d
 
 def main() :
     merge_exoris()
@@ -43,24 +44,38 @@ def merge_exorem():
         exorem = pd.concat(frames,ignore_index=True)
         exorem = exorem.loc[:, ~exorem.columns.str.contains('^Unnamed')]
         exorem = exorem.dropna().drop_duplicates(keep='last')
-        exorem = correct_T_eff(exorem)
+        exorem = correct_T_eff_R(exorem)
         exorem.to_csv('./exorem_grid.csv',index=False)
         exorem.to_csv('../output_exorem/exorem_grid.csv',index=False)
 
         Delete_All = [os.remove(file) for file in files]
 
-def correct_T_eff(exorem):
+def correct_T_eff_R(exorem):
     T_eff_corrected = []
+    delta_r = []
     for ii in range(0,len(exorem)):
         g = exorem['g'].iloc[ii]
         T_int = exorem['T_int'].iloc[ii]
         T_irr = exorem['T_irr'].iloc[ii]
         spectra = '../VMR_spectra/spectra_{}_{}_{}.dat'.format(g,T_int,T_irr)
+        T_profile = '../profiles/temperature_profile_{}_{}_{}.dat'.format(g,T_int,T_irr)
         T_eff_corrected.append(T_eff(spectra))
+        delta_r.append(Radius_1000_1(T_profile))
 
     exorem['T_eff'] = T_eff_corrected
+    exorem['delta_r'] = delta_r
 
     return exorem
+
+def Radius_1000_1(file) :
+    data = load_dat(file)
+    del data['units']
+    data = pd.DataFrame(data)
+    P_p = np.array(data['pressure'])*1e-5
+    R = np.array(data['altitude'])
+    R_1 = float(interp1d(P_p,R,kind='cubic')(1))
+    R_1000 = float(interp1d(P_p,R,kind='cubic')(100)) #Defined negatively 
+    return R_1-R_1000
 
 def T_eff(file) :
     sigma = 5.67*1e-8

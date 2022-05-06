@@ -131,6 +131,7 @@ dmypy.json
 #data files
 *.csv
 *.txt
+*.dat
 
 #images - tables
 exo_evol/images/

@@ -45,10 +45,10 @@ def plotting_exoris(exoris=pd.read_csv('exoris_grid.csv')) :
     plt.colorbar()
     plt.show() 
 
-    plt.scatter(exoris['g'], exoris['Req'], c=exoris['S'], cmap=cm)
+    plt.scatter(exoris['M'], exoris['Req'], c=exoris['S'], cmap=cm)
     plt.xlabel('Mass (Kg)')
     plt.ylabel('Radius (m)')
-    #plt.xscale('log')
+    plt.xscale('log')
     plt.title('Entropy as a function of Radius and Mass')
     plt.colorbar()
     plt.show() 
