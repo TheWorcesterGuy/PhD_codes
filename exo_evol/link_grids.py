@@ -93,6 +93,7 @@ def merge_grids(exoris,exorem):
 
     df = exoris.merge(exorem, how='inner', on=['T_1000','g'])
     df_ =  df[(df['y_x']-df['y_y']).abs()<0.1]
+    df_['Req'] = df_['Req'] + df_['delta_r']
     return df_
     
 def interpolate_exoris_at_M(exoris,parameters):
@@ -131,6 +132,7 @@ def interpolate_exorem(exorem):
                 exorem_new['T_1000'] = interp1d(exorem_['T_int'],exorem_['T_1000'], bounds_error=False ,fill_value=np.nan)(T_int)
                 exorem_new['T_1'] = interp1d(exorem_['T_int'],exorem_['T_1'], bounds_error=False ,fill_value=np.nan)(T_int)
                 exorem_new['T_eff'] = interp1d(exorem_['T_int'],exorem_['T_eff'], bounds_error=False ,fill_value=np.nan)(T_int)
+                exorem_new['delta_r'] = interp1d(exorem_['T_int'],exorem_['delta_r'], bounds_error=False ,fill_value=np.nan)(T_int)
                 exorem_new['T_int'] = T_int
                 exorem_new['g'] = g
                 exorem_new['T_irr'] = T
@@ -149,6 +151,7 @@ def interpolate_exorem(exorem):
                 exorem_new['T_1000'] = interp1d(exorem_['g'],exorem_['T_1000'], bounds_error=False ,fill_value=np.nan)(g)
                 exorem_new['T_1'] = interp1d(exorem_['g'],exorem_['T_1'], bounds_error=False ,fill_value=np.nan)(g)
                 exorem_new['T_eff'] = interp1d(exorem_['g'],exorem_['T_eff'], bounds_error=False ,fill_value=np.nan)(g)
+                exorem_new['delta_r'] = interp1d(exorem_['g'],exorem_['delta_r'], bounds_error=False ,fill_value=np.nan)(g)
                 exorem_new['T_irr'] = T_irr
                 exorem_new['T_int'] = T_int
                 exorem_new['g'] = g
@@ -178,22 +181,22 @@ def interpolate_final_at_M(final,parameters):
             frames.append(final_new)
     final = pd.concat(frames,ignore_index=True).dropna()
 
-    frames = []
-    M_grid = list(np.linspace(final['M'].min(),final['M'].max(),2000))
-    M_grid = np.sort(M_grid)
-    for R in np.sort(list(set(final['Req']))):
-        final_ = final[final['Req']==R]
-        final_new = pd.DataFrame()
-        if len(final_)>3:
-            final_new['S'] = interp1d(final_['M'],final_['S'], bounds_error=False ,fill_value=np.nan)(M_grid)
-            final_new['T_int'] = interp1d(final_['M'],final_['T_int'], bounds_error=False ,fill_value=np.nan)(M_grid)
-            final_new['T_eff'] = interp1d(final_['M'],final_['T_eff'], bounds_error=False ,fill_value=np.nan)(M_grid)
-            final_new['T_1000'] = interp1d(final_['M'],final_['T_1000'], bounds_error=False ,fill_value=np.nan)(M_grid)
-            final_new['g'] = interp1d(final_['M'],final_['g'], bounds_error=False ,fill_value=np.nan)(M_grid)
-            final_new['Req'] = R
-            final_new['M'] = M_grid
-            frames.append(final_new)
-    final = pd.concat(frames,ignore_index=True).dropna()
+    # frames = []
+    # M_grid = list(np.linspace(final['M'].min(),final['M'].max(),2000))
+    # M_grid = np.sort(M_grid)
+    # for R in np.sort(list(set(final['Req']))):
+    #     final_ = final[final['Req']==R]
+    #     final_new = pd.DataFrame()
+    #     if len(final_)>3:
+    #         final_new['S'] = interp1d(final_['M'],final_['S'], bounds_error=False ,fill_value=np.nan)(M_grid)
+    #         final_new['T_int'] = interp1d(final_['M'],final_['T_int'], bounds_error=False ,fill_value=np.nan)(M_grid)
+    #         final_new['T_eff'] = interp1d(final_['M'],final_['T_eff'], bounds_error=False ,fill_value=np.nan)(M_grid)
+    #         final_new['T_1000'] = interp1d(final_['M'],final_['T_1000'], bounds_error=False ,fill_value=np.nan)(M_grid)
+    #         final_new['g'] = interp1d(final_['M'],final_['g'], bounds_error=False ,fill_value=np.nan)(M_grid)
+    #         final_new['Req'] = R
+    #         final_new['M'] = M_grid
+    #         frames.append(final_new)
+    # final = pd.concat(frames,ignore_index=True).dropna()
 
     return final
 
@@ -286,10 +289,10 @@ def plotting(final):
     cm = plt.cm.get_cmap('RdYlBu').reversed()
     plt.figure()
     plt.scatter(final['M']/M_J, final['Req']/(R_J), c=final['T_eff'], cmap=cm)
-    plt.xlabel('M (J)')
-    plt.xscale('log')
-    plt.ylabel('Radius (m)')
-    plt.title('T_eff = Radius and M')
+    plt.xlabel('M $(M_J)$')
+    #plt.xscale('log')
+    plt.ylabel('Radius $(R_J)$')
+    plt.title('$T_{eff}$ = Radius and Mass')
     plt.colorbar()
     plt.savefig('./images/T_f(R_M).png')
     plt.show() 
@@ -297,8 +300,8 @@ def plotting(final):
     plt.figure()
     plt.scatter(final['T_eff'], final['Req']/(R_J), c=final['M']/M_J, cmap=cm)
     plt.xlabel('T_eff (K)')
-    plt.ylabel('Radius (m)')
-    plt.title('Mass (J) = Radius and T_eff')
+    plt.ylabel('Radius $(R_J)$')
+    plt.title('Mass $(M_J)$ = Radius and $T_{eff}$')
     #plt.xscale('log')
     plt.colorbar()
     plt.savefig('./images/M_f(T_R).png')
