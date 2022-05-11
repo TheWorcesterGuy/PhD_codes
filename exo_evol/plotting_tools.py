@@ -146,24 +146,37 @@ def plot_exorem_profile(exorem):
     plt.title('Exorem profile at T_int : {}K, g : {}m.s-2'.format(exorem_['T_int'].iloc[0],exorem_['g'].iloc[0]))
     plt.show()
 
-def plotting_merged(merged_grids=pd.read_csv('evolution_grid.csv')) :
+def plotting_merged() :
+    R_J = 69911000
+    M_J = 1.898*1e27
     cm = plt.cm.get_cmap('RdYlBu').reversed()
-    merge_ = merged_grids[merged_grids['M']==random.choice(list(merged_grids['M']))]
-    #merge_ = merged_grids
-    plt.scatter(merge_['T_eff'], merge_['Req']/(R_J), c=merge_['S'], cmap=cm)
-    plt.xlabel('T_eff ($K$)')
-    plt.ylabel('$R_{eq}$ (J)')
-    plt.title('S=f(T_eff,R)')
-    plt.colorbar()
-    plt.show() 
+    files = glob.glob('./evolution_grids/*.csv')
+    for file in np.sort(files) :
+        final = pd.read_csv(file)
+        cm = plt.cm.get_cmap('RdYlBu').reversed()
+        plt.figure()
+        plt.scatter(final['M']/M_J, final['Req']/(R_J), c=final['T_eff'], cmap=cm)
+        plt.xlabel('M $(M_J)$')
+        #plt.xscale('log')
+        plt.ylabel('Radius $(R_J)$')
+        plt.title('$Teff$ = Radius and Mass at T_irr : {}K'.format(file.split('_')[-1].replace('.csv','')))
+        plt.colorbar()
+        plt.axvline(x=1, color='k', linestyle='--')
+        plt.axhline(y=1, color='k', linestyle='--')
+        plt.savefig('./images/T_f(R_M)_T_irr_{}.png'.format(file.split('_')[-1].replace('.csv','')))
+        plt.show() 
 
-    merge_ = merged_grids
-    plt.scatter(merge_['T_eff'], merge_['Req']/(R_J), c=merge_['M']/(M_J), cmap=cm)
-    plt.xlabel('T_eff ($K$)')
-    plt.ylabel('$R_{eq}$ (J)')
-    plt.title('M=f(T_eff,R)')
-    plt.colorbar()
-    plt.show() 
+        plt.figure()
+        plt.scatter(final['T_eff'], final['Req']/(R_J), c=final['M']/M_J, cmap=cm)
+        plt.xlabel('T_eff (K)')
+        plt.ylabel('Radius $(R_J)$')
+        plt.title('Mass $(M_J)$ = Radius and $Teff$ at T_irr : {}K'.format(file.split('_')[-1].replace('.csv','')))
+        #plt.xscale('log')
+        #plt.axvline(x=170, color='k', linestyle='--')
+        #plt.axhline(y=1, color='k', linestyle='--')
+        plt.colorbar()
+        plt.savefig('./images/M_f(T_R)_T_irr_{}.png'.format(file.split('_')[-1].replace('.csv','')))
+        plt.show() 
 
 
 def initial_grid_reduction(parameters,exoris,exorem):

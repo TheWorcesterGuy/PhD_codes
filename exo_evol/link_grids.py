@@ -13,24 +13,33 @@ import random
 warnings.filterwarnings("ignore")
 
 def main() :
-    os.system('python3 merge_files.py')
-    parameters = load_parameters()
-    exoris = pd.read_csv('exoris_grid.csv')
-    exorem = pd.read_csv('exorem_grid.csv')
-    exoris, exorem = formating(exoris,exorem)
-    exoris, exorem = initial_grid_reduction(parameters,exoris,exorem)
-    exorem, exoris = cleaning(exorem,exoris)
-    exorem = interpolate_exorem(exorem)
-    #exoris = interpolate_exoris_at_M(exoris,parameters)
-    exoris = interpolation_exoris_at_exorem(exoris,exorem,parameters)
-    merged_grids = merge_grids(exoris,exorem)
-    merged_grids = interpolate_final_at_M(merged_grids,parameters)
-    plotting(merged_grids)
+    idx = int(eval(sys.argv[-1]))
+    try :
+        print('Starting grid linkage for IDX {}'.format(idx))
+        os.system('python3 merge_files.py')
+        parameters = load_parameters(idx)
+        print('Temperature irradiation {}'.format(parameters['T_irr'].iloc[0]))
+        exoris = pd.read_csv('exoris_grid.csv')
+        exorem = pd.read_csv('exorem_grid.csv')
+        exoris, exorem = formating(exoris,exorem)
+        exoris, exorem = initial_grid_reduction(parameters,exoris,exorem)
+        exorem, exoris = cleaning(exorem,exoris)
+        exorem = interpolate_exorem(exorem)
+        #exoris = interpolate_exoris_at_M(exoris,parameters)
+        exoris = interpolation_exoris_at_exorem(exoris,exorem,parameters)
+        merged_grids = merge_grids(exoris,exorem)
+        merged_grids = interpolate_final_at_M(merged_grids,parameters)
+        saving(merged_grids,parameters)
+        print('Completed IDX {}'.format(idx))
+    except :
+        print('Error for IDX {}'.format(idx))
     
-def load_parameters() :
+def load_parameters(idx) :
     parameters = pd.read_csv("parameters.txt",delimiter='=',skipinitialspace=True).T
     parameters.columns = parameters.columns.str.strip()
-    parameters.apply(pd.to_numeric, errors='coerce')
+    T_irr = eval(parameters['T_irr'].iloc[0])[idx]
+    parameters = parameters.apply(pd.to_numeric, errors='coerce')
+    parameters['T_irr'] = T_irr
     return parameters
 
 def initial_grid_reduction(parameters,exoris,exorem):
@@ -92,7 +101,7 @@ def interpolation_exoris_at_exorem(exoris,exorem,parameters) :
 def merge_grids(exoris,exorem):
 
     df = exoris.merge(exorem, how='inner', on=['T_1000','g'])
-    df_ =  df[(df['y_x']-df['y_y']).abs()<0.1]
+    df_ =  df[(df['y_x']-df['y_y']).abs()<0.05]
     df_['Req'] = df_['Req'] + df_['delta_r']
     return df_
     
@@ -174,6 +183,7 @@ def interpolate_final_at_M(final,parameters):
             final_new['S'] = interp1d(final_['Req'],final_['S'], bounds_error=False ,fill_value=np.nan)(R_grid)
             final_new['T_int'] = interp1d(final_['Req'],final_['T_int'], bounds_error=False ,fill_value=np.nan)(R_grid)
             final_new['T_eff'] = interp1d(final_['Req'],final_['T_eff'], bounds_error=False ,fill_value=np.nan)(R_grid)
+            final_new['T_1'] = interp1d(final_['Req'],final_['T_1'], bounds_error=False ,fill_value=np.nan)(R_grid)
             final_new['T_1000'] = interp1d(final_['Req'],final_['T_1000'], bounds_error=False ,fill_value=np.nan)(R_grid)
             final_new['M'] = interp1d(final_['Req'],final_['M'], bounds_error=False ,fill_value=np.nan)(R_grid)
             final_new['Req'] = R_grid
@@ -237,8 +247,8 @@ def extract_T_at_P_exorem(df):
     for ii in range(0,len(df_temp)) :
         P_p = np.array(df_temp.iloc[ii]['P_p'])
         T_p = np.array(df_temp.iloc[ii]['T_p'])
-        T_1000.append(float(interp1d(np.array(df_temp.iloc[ii]['P_p'])*1e-5,df_temp.iloc[ii]['T_p'])(1)))
-        T_1.append(float(interp1d(np.array(df_temp.iloc[ii]['P_p'])*1e-5,df_temp.iloc[ii]['T_p'])(1000)))
+        T_1000.append(float(interp1d(np.array(df_temp.iloc[ii]['P_p'])*1e-5,df_temp.iloc[ii]['T_p'])(1000)))
+        T_1.append(float(interp1d(np.array(df_temp.iloc[ii]['P_p'])*1e-5,df_temp.iloc[ii]['T_p'])(1)))
 
         idx_p = np.where(P_p>=1000*1e5)[0][0] # Index of pressure linkage
         coef = np.mean(np.diff(np.log(T_p[idx_p-1:idx_p+1]))/np.diff(np.log(P_p[idx_p-1:idx_p+1]))) # Sloap at linkage
@@ -280,32 +290,37 @@ def cleaning(exoris,exorem):
     return exoris, exorem
 
 
-def plotting(final):
-    final.to_csv('evolution_grid.csv',index=False)
-    final = pd.read_csv('evolution_grid.csv')
-    R_J = 69911000
-    M_J = 1.898*1e27
+def saving(final,parameters):
+    final.to_csv('./evolution_grids/evolution_grid_{}.csv'.format(parameters['T_irr'].iloc[0]),index=False)
+    
+    #final = pd.read_csv('evolution_grid.csv')
+    #R_J = 69911000
+    #M_J = 1.898*1e27
 
-    cm = plt.cm.get_cmap('RdYlBu').reversed()
-    plt.figure()
-    plt.scatter(final['M']/M_J, final['Req']/(R_J), c=final['T_eff'], cmap=cm)
-    plt.xlabel('M $(M_J)$')
-    #plt.xscale('log')
-    plt.ylabel('Radius $(R_J)$')
-    plt.title('$T_{eff}$ = Radius and Mass')
-    plt.colorbar()
-    plt.savefig('./images/T_f(R_M).png')
-    plt.show() 
+    # cm = plt.cm.get_cmap('RdYlBu').reversed()
+    # plt.figure()
+    # plt.scatter(final['M']/M_J, final['Req']/(R_J), c=final['T_eff'], cmap=cm)
+    # plt.xlabel('M $(M_J)$')
+    # #plt.xscale('log')
+    # plt.ylabel('Radius $(R_J)$')
+    # plt.title('$T_{eff}$ = Radius and Mass')
+    # plt.colorbar()
+    # plt.axvline(x=1, color='k', linestyle='--')
+    # plt.axhline(y=1, color='k', linestyle='--')
+    # plt.savefig('./images/T_f(R_M).png')
+    # plt.show() 
 
-    plt.figure()
-    plt.scatter(final['T_eff'], final['Req']/(R_J), c=final['M']/M_J, cmap=cm)
-    plt.xlabel('T_eff (K)')
-    plt.ylabel('Radius $(R_J)$')
-    plt.title('Mass $(M_J)$ = Radius and $T_{eff}$')
-    #plt.xscale('log')
-    plt.colorbar()
-    plt.savefig('./images/M_f(T_R).png')
-    plt.show() 
+    # plt.figure()
+    # plt.scatter(final['T_eff'], final['Req']/(R_J), c=final['M']/M_J, cmap=cm)
+    # plt.xlabel('T_eff (K)')
+    # plt.ylabel('Radius $(R_J)$')
+    # plt.title('Mass $(M_J)$ = Radius and $T_{eff}$')
+    # #plt.xscale('log')
+    # plt.axvline(x=170, color='k', linestyle='--')
+    # plt.axhline(y=1, color='k', linestyle='--')
+    # plt.colorbar()
+    # plt.savefig('./images/M_f(T_R).png')
+    # plt.show() 
 
     
 if __name__  ==  "__main__":
